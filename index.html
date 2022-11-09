@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="all_bookmarks.json"></script>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      }
+      #tweets {
+        width: 600px;
+        margin: 0 auto;
+      }
+      .tweet {
+        display: flex;
+        flex-direction: row;
+        max-width: 100%;
+        padding-bottom: 16px;
+        border-bottom: 1px solid lightgray;
+        margin-bottom: 16px;
+      }
+      .tweet .content {
+        margin-left: 8px;
+      }
+      .tweet .content .text {
+        white-space: pre-wrap;
+      }
+      .tweet .header .name {
+        font-weight: bold;
+      }
+      .tweet .header .username::before {
+        content: '@';
+      }
+      .media:has(*) {
+        margin-top: 8px;
+      }
+      .media > img, .media > video {
+        max-width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <template id="tweet">
+      <div class="tweet">
+        <div class="profile-pic">
+          <img>
+        </div>
+        <div class="content">
+          <div class="header">
+            <span class="name"></span>
+            <span class="username"></span>
+            <span class="date"></span>
+          </div>
+          <div class="text"></div>
+          <div class="media"></div>
+        </div>
+      </div>
+    </template>
+    <div id="tweets"></div>
+    <script>
+      const tweetTemplate = document.getElementById('tweet')
+      const fixURL = (url) => {
+        const u = new URL(url)
+        return new URL('./' + u.host + u.pathname, location.href)
+      }
+      function renderTweetText(el, tweet) {
+        const urls = tweet.entities?.urls ?? []
+        urls.sort((a, b) => a.start - b.start)
+        const text = tweet.text
+        const codepoints = Array.from(text)
+        let i = 0
+        for (const u of urls) {
+          if (u.start > i) {
+            el.appendChild(document.createTextNode(codepoints.slice(i, u.start).join('')))
+          }
+          if (!u.media_key) {
+            const link = document.createElement('a')
+            link.setAttribute('href', u.expanded_url)
+            link.textContent = u.display_url
+            el.appendChild(link)
+          }
+          i = u.end
+        }
+        if (i < text.length) {
+          el.appendChild(document.createTextNode(codepoints.slice(i).join('')))
+        }
+      }
+      for (const tweet of TWEETS) {
+        const div = tweetTemplate.content.cloneNode(true)
+        const url = fixURL(tweet.author.profile_image_url)
+        div.querySelector('.profile-pic img').src = url.toString()
+        div.querySelector('.header .name').textContent = tweet.author.name
+        div.querySelector('.header .username').textContent = tweet.author.username
+        renderTweetText(div.querySelector('.text'), tweet.tweet)
+        for (const media_key of tweet.tweet.attachments?.media_keys ?? []) {
+          const media = tweet.medias.find(m => m.media_key === media_key)
+          let mediaEl
+          if (media.type === 'photo') {
+            const img = new Image
+            img.src = fixURL(media.url)
+            img.setAttribute('alt', media.alt_text)
+            mediaEl = img
+          }
+          if (media.type === 'video' || media.type === 'animated_gif') {
+            const v = document.createElement('video')
+            //v.setAttribute('playsinline', '')
+            v.setAttribute('preload', 'none')
+            v.setAttribute('controls', '')
+            v.setAttribute('disablepictureinpicture', '')
+            v.setAttribute('poster', media.preview_image_url)
+            const mp4s = media.variants.filter(t => t.content_type === 'video/mp4')
+            mp4s.sort((a, b) => b.bit_rate - a.bit_rate)
+            const highestQuality = mp4s[0]
+            v.setAttribute('src', fixURL(highestQuality.url))
+            mediaEl = v
+          }
+          if (mediaEl) div.querySelector('.media').appendChild(mediaEl)
+        }
+        tweets.appendChild(div)
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "async": "^3.2.4",
+    "p-limit": "^4.0.0",
+    "passport": "^0.6.0",
+    "twitter-api-v2": "^1.12.9"
+  },
+  "devDependencies": {
+    "@types/async": "^3.2.15",
+    "dotenv": "^16.0.3"
+  }
+}
