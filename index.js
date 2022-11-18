@@ -34,14 +34,13 @@ async function login() {
   await new Promise(r => server.listen(3000, r))
   const { url, codeVerifier, state } = authClient.generateOAuth2AuthLink('http://localhost:3000', { scope: ['bookmark.read', 'users.read', 'tweet.read'] });
 
-
-  /*
-  const authLink = await authClient.generateAuthLink('oob');
-  */
   console.log(`log in at: ${url}`)
   const {code, state: newState} = await received
+  console.log(state, newState)
+  if (!newState)
+    throw new Error(`no new state: ${code}`)
   if (state !== newState)
-    throw new Error('tokens no match')
+    throw new Error('tokens do not match')
 
   const logInClient = new TwitterApi({ clientId: TWITTER_CLIENT_ID, clientSecret: TWITTER_CLIENT_SECRET   });
   const { client: {readOnly: loggedInClient}, accessToken, refreshToken, expiresIn } = await logInClient.loginWithOAuth2({code, codeVerifier, redirectUri: 'http://localhost:3000'});
@@ -60,7 +59,7 @@ async function main() {
     'user.fields': ['id', 'name', 'profile_image_url', 'url', 'username', 'verified'],
     'tweet.fields': ['attachments', 'author_id', 'created_at', 'conversation_id', 'entities', 'id', 'in_reply_to_user_id', 'referenced_tweets', 'source', 'text', 'public_metrics'],
   })
-  const allBookmarks = await fs.readFile('all_bookmarks.json', 'utf-8').then(j => JSON.parse(j), () => [])
+  const allBookmarks = await fs.readFile('all_bookmarks.json', 'utf-8').then(j => JSON.parse(j.slice(j.indexOf('['))), () => [])
   if (!allBookmarks.length) {
     let i = 0
     for await (const tweet of bms) {
@@ -71,21 +70,6 @@ async function main() {
         medias,
         author,
       }
-      /*
-      if (tweet.conversation_id) {
-        console.log(tweet.conversation_id)
-        const results = await client.v2.search(`conversation_id:${tweet.conversation_id} from:${tweet.author_id}`, {
-          expansions: ['attachments.media_keys', 'attachments.poll_ids', 'referenced_tweets.id', 'referenced_tweets.id.author_id', 'author_id', 'entities.mentions.username', 'in_reply_to_user_id'],
-          'media.fields': ['url', 'alt_text', 'preview_image_url', 'type', 'variants', 'width', 'height'],
-          'user.fields': ['id', 'name', 'profile_image_url', 'url', 'username', 'verified'],
-          'tweet.fields': ['attachments', 'author_id', 'created_at', 'conversation_id', 'entities', 'id', 'in_reply_to_user_id', 'referenced_tweets', 'source', 'text', 'public_metrics'],
-        })
-        for await (const tweet of results) {
-          console.dir(tweet, {depth: null})
-        }
-        return
-      }
-      */
       allBookmarks.push(bm)
       i++;
       if (i % 10 === 0) console.log(i)
