@@ -1,5 +1,11 @@
 # Export your Twitter Bookmarks
 
+> **Note**
+> 
+> I made a better version of this that just runs in your browser!
+>
+> [👉 Try it out!](https://twitter-bookmark-archiver.glitch.me/)
+
 This is a script which lets you export your Twitter Bookmarks, including all
 media (photos and videos, as well as fully expanded URLs) attached to those
 tweets.
